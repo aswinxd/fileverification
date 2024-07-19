@@ -10,7 +10,7 @@ import logging
 import random
 import re
 import string
-
+from shortzy import Shortzy
 from bot import Bot
 from config import (
     ADMINS,
