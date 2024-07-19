@@ -8,7 +8,7 @@ from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait
 from database.database import db_verify_status, db_update_verify_status, user_data
 from motor.motor_asyncio import AsyncIOMotorClient
-
+from shortzy import Shortzy
 async def is_subscribed(filter, client, update):
     if not FORCE_SUB_CHANNEL:
         return True
