@@ -1,14 +1,15 @@
-#(©)Codexbotz
+# (©)Codexbotz
 
 import base64
 import re
 import asyncio
 from pyrogram import filters
 from pyrogram.enums import ChatMemberStatus
-from config import FORCE_SUB_CHANNEL, ADMINS
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait
-from database.database import db_verify_status, db_update_verify_status,user_data
+from motor.motor_asyncio import AsyncIOMotorClient
+from database.database import db_verify_status, db_update_verify_status, user_data
+from config import FORCE_SUB_CHANNEL, ADMINS
 
 async def is_subscribed(filter, client, update):
     if not FORCE_SUB_CHANNEL:
@@ -17,11 +18,11 @@ async def is_subscribed(filter, client, update):
     if user_id in ADMINS:
         return True
     try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL, user_id = user_id)
+        member = await client.get_chat_member(chat_id=FORCE_SUB_CHANNEL, user_id=user_id)
     except UserNotParticipant:
         return False
 
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
+    if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
         return False
     else:
         return True
@@ -33,9 +34,9 @@ async def encode(string):
     return base64_string
 
 async def decode(base64_string):
-    base64_string = base64_string.strip("=") # links generated before this commit will be having = sign, hence striping them to handle padding errors.
+    base64_string = base64_string.strip("=")  # Strip '=' to handle padding errors
     base64_bytes = (base64_string + "=" * (-len(base64_string) % 4)).encode("ascii")
-    string_bytes = base64.urlsafe_b64decode(base64_bytes) 
+    string_bytes = base64.urlsafe_b64decode(base64_bytes)
     string = string_bytes.decode("ascii")
     return string
 
@@ -43,21 +44,22 @@ async def get_messages(client, message_ids):
     messages = []
     total_messages = 0
     while total_messages != len(message_ids):
-        temb_ids = message_ids[total_messages:total_messages+200]
+        temp_ids = message_ids[total_messages:total_messages + 200]
         try:
             msgs = await client.get_messages(
                 chat_id=client.db_channel.id,
-                message_ids=temb_ids
+                message_ids=temp_ids
             )
         except FloodWait as e:
             await asyncio.sleep(e.x)
             msgs = await client.get_messages(
                 chat_id=client.db_channel.id,
-                message_ids=temb_ids
+                message_ids=temp_ids
             )
-        except:
+        except Exception as e:
+            print(f"Error getting messages: {e}")
             pass
-        total_messages += len(temb_ids)
+        total_messages += len(temp_ids)
         messages.extend(msgs)
     return messages
 
@@ -71,7 +73,7 @@ async def get_message_id(client, message):
         return 0
     elif message.text:
         pattern = "https://t.me/(?:c/)?(.*)/(\d+)"
-        matches = re.match(pattern,message.text)
+        matches = re.match(pattern, message.text)
         if not matches:
             return 0
         channel_id = matches.group(1)
@@ -97,7 +99,6 @@ async def update_verify_status(user_id, verify_token="", is_verified=False, veri
     current['link'] = link
     await db_update_verify_status(user_id, current)
 
-
 async def get_shortlink(url, api, link):
     shortzy = Shortzy(api_key=api, base_site=url)
     link = await shortzy.convert(link)
@@ -109,8 +110,8 @@ def get_exp_time(seconds):
     for period_name, period_seconds in periods:
         if seconds >= period_seconds:
             period_value, seconds = divmod(seconds, period_seconds)
-            result += f'{int(period_value)}{period_name}'
-    return result
+            result += f'{int(period_value)}{period_name} '
+    return result.strip()
 
 def get_readable_time(seconds: int) -> str:
     count = 0
@@ -132,6 +133,5 @@ def get_readable_time(seconds: int) -> str:
     time_list.reverse()
     up_time += ":".join(time_list)
     return up_time
-
 
 subscribed = filters.create(is_subscribed)
