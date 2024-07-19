@@ -1,5 +1,5 @@
-import os
 import motor.motor_asyncio
+import os
 from config import DB_URI, DB_NAME
 
 dbclient = motor.motor_asyncio.AsyncIOMotorClient(DB_URI)
