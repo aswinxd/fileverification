@@ -39,7 +39,3 @@ async def cb_handler(client: Bot, query: CallbackQuery):
                 await message.reply_to_message.delete()
         except Exception as e:
             print(f"Failed to delete message or reply: {e}")
-
-if __name__ == "__main__":
-    app = Bot("my_bot")
-    app.run()
